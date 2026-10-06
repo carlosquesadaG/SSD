@@ -1,0 +1,275 @@
+@page "/documents"
+@attribute [Authorize]
+@inject IDocumentService DocumentService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@using System.Security.Claims
+
+<PageTitle>Gestión de Documentos - ContosoDashboard</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-file-alt me-2"></i> Mis Documentos</h2>
+            <p class="text-muted">Cargue, organice y gestione sus documentos de trabajo de forma segura.</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" @onclick="ToggleUploadModal">
+                <i class="fas fa-upload me-1"></i> Subir Nuevo Documento
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            @statusMessage
+            <button type="button" class="btn-close" @onclick="() => statusMessage = string.Empty"></button>
+        </div>
+    }
+
+    <!-- Filtros y Búsqueda -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" placeholder="Buscar por título o etiqueta..." @bind="searchTerm" @bind:event="oninput" />
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" @bind="selectedCategory">
+                        <option value="">Todas las Categorías</option>
+                        <option value="Project Documents">Project Documents</option>
+                        <option value="Team Resources">Team Resources</option>
+                        <option value="Personal Files">Personal Files</option>
+                        <option value="Reports">Reports</option>
+                        <option value="Presentations">Presentations</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Documentos -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            @if (documents == null)
+            {
+                <p class="text-center py-4">Cargando documentos...</p>
+            }
+            else if (!FilteredDocuments.Any())
+            {
+                <p class="text-center text-muted py-4">No se encontraron documentos.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Título</th>
+                                <th>Categoría</th>
+                                <th>Tamaño</th>
+                                <th>Fecha de Carga</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var doc in FilteredDocuments)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@doc.Title</strong>
+                                        @if (!string.IsNullOrEmpty(doc.Description))
+                                        {
+                                            <br /><small class="text-muted">@doc.Description</small>
+                                        }
+                                    </td>
+                                    <td><span class="badge bg-secondary">@doc.Category</span></td>
+                                    <td>@(doc.FileSize / 1024) KB</td>
+                                    <td>@doc.UploadDate.ToLocalTime().ToString("g")</td>
+                                    <td>
+                                        <a href="/api/documents/@doc.Id/download" class="btn btn-sm btn-outline-success me-1" title="Descargar" target="_blank">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        <a href="/api/documents/@doc.Id/preview" class="btn btn-sm btn-outline-info me-1" title="Previsualizar" target="_blank">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-danger" title="Eliminar" @onclick="() => DeleteDoc(doc.Id)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Carga -->
+@if (showUploadModal)
+{
+    <div class="modal show fade d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Subir Documento (Máx. 25 MB)</h5>
+                    <button type="button" class="btn-close" @onclick="ToggleUploadModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Título *</label>
+                        <input type="text" class="form-control" @bind="newTitle" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" @bind="newDescription"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Categoría *</label>
+                        <select class="form-select" @bind="newCategory">
+                            <option value="Project Documents">Project Documents</option>
+                            <option value="Team Resources">Team Resources</option>
+                            <option value="Personal Files">Personal Files</option>
+                            <option value="Reports">Reports</option>
+                            <option value="Presentations">Presentations</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Archivo * (PDF, Office, Imágenes, Texto)</label>
+                        <InputFile class="form-control" OnChange="OnFileSelected" />
+                        @if (!string.IsNullOrEmpty(uploadError))
+                        {
+                            <div class="text-danger small mt-1">@uploadError</div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="ToggleUploadModal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="UploadFile" disabled="@isUploading">
+                        @if (isUploading) { <span>Subiendo...</span> } else { <span>Subir Archivo</span> }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Document>? documents;
+    private bool showUploadModal = false;
+    private string currentUserId = string.Empty;
+    private string statusMessage = string.Empty;
+    private string uploadError = string.Empty;
+    private bool isUploading = false;
+
+    private string searchTerm = string.Empty;
+    private string selectedCategory = string.Empty;
+
+    private string newTitle = string.Empty;
+    private string? newDescription;
+    private string newCategory = "Project Documents";
+    private IBrowserFile? selectedFile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        currentUserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1";
+        await LoadDocuments();
+    }
+
+    private async Task LoadDocuments()
+    {
+        documents = await DocumentService.GetDocumentsByUserAsync(currentUserId);
+    }
+
+    private IEnumerable<Document> FilteredDocuments => documents?.Where(d =>
+        (string.IsNullOrEmpty(searchTerm) || d.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || (d.Tags != null && d.Tags.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))) &&
+        (string.IsNullOrEmpty(selectedCategory) || d.Category == selectedCategory)
+    ) ?? Enumerable.Empty<Document>();
+
+    private void ToggleUploadModal()
+    {
+        showUploadModal = !showUploadModal;
+        uploadError = string.Empty;
+        newTitle = string.Empty;
+        newDescription = null;
+        selectedFile = null;
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        if (selectedFile.Size > 25 * 1024 * 1024)
+        {
+            uploadError = "El archivo excede el límite máximo de 25 MB.";
+            selectedFile = null;
+        }
+        else
+        {
+            uploadError = string.Empty;
+            if (string.IsNullOrEmpty(newTitle))
+            {
+                newTitle = selectedFile.Name;
+            }
+        }
+    }
+
+    private async Task UploadFile()
+    {
+        if (selectedFile == null || string.IsNullOrWhiteSpace(newTitle))
+        {
+            uploadError = "Por favor complete el título y seleccione un archivo válido.";
+            return;
+        }
+
+        isUploading = true;
+        try
+        {
+            // Convert IBrowserFile to IFormFile via memory stream
+            using var stream = selectedFile.OpenReadStream(25 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            var formFile = new FormFile(memoryStream, 0, memoryStream.Length, "file", selectedFile.Name)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = selectedFile.ContentType
+            };
+
+            await DocumentService.UploadDocumentAsync(formFile, newTitle, newDescription, newCategory, currentUserId, null, null);
+            
+            statusMessage = "Documento subido exitosamente.";
+            showUploadModal = false;
+            await LoadDocuments();
+        }
+        catch (Exception ex)
+        {
+            uploadError = $"Error al subir el archivo: {ex.Message}";
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private async Task DeleteDoc(int id)
+    {
+        try
+        {
+            await DocumentService.DeleteDocumentAsync(id, currentUserId, false);
+            statusMessage = "Documento eliminado correctamente.";
+            await LoadDocuments();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error al eliminar: {ex.Message}";
+        }
+    }
+}
