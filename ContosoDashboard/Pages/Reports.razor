@@ -1,0 +1,165 @@
+@page "/reports"
+@using ContosoDashboard.Services
+@using ContosoDashboard.Models
+@using ContosoDashboard.Data
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IReportService ReportService
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Reportes y Analítica - ContosoDashboard</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-chart-bar me-2"></i> Reportes y Auditoría</h2>
+            <p class="text-muted">Resumen analítico de proyectos, tareas y actividad de documentos.</p>
+        </div>
+        <div class="col-auto d-flex align-items-center gap-2">
+            <a href="/api/reports/export?format=excel&projectId=@selectedProjectId" class="btn btn-success" target="_blank">
+                <i class="fas fa-file-excel me-1"></i> Exportar Excel (CSV)
+            </a>
+            <a href="/api/reports/export?format=pdf&projectId=@selectedProjectId" class="btn btn-danger" target="_blank">
+                <i class="fas fa-file-pdf me-1"></i> Exportar PDF (Ejecutivo)
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Filtrar por Proyecto</label>
+                    <select class="form-select" @bind="selectedProjectId" @bind:after="LoadReportData">
+                        <option value="">Todos los Proyectos</option>
+                        @if (projects != null)
+                        {
+                            @foreach (var proj in projects)
+                            {
+                                <option value="@proj.ProjectId">@proj.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (summary == null)
+    {
+        <p class="text-center py-4">Cargando reportes...</p>
+    }
+    else
+    {
+        <!-- Tarjetas de Resumen -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card shadow-sm border-start border-primary border-4">
+                    <div class="card-body">
+                        <h6 class="text-muted">Proyectos Totales / Activos</h6>
+                        <h3>@summary.TotalProjects <span class="text-muted fs-6">(@summary.ActiveProjects activos)</span></h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm border-start border-success border-4">
+                    <div class="card-body">
+                        <h6 class="text-muted">Tareas Completadas / Total</h6>
+                        <h3>@summary.CompletedTasks <span class="text-muted fs-6">/ @summary.TotalTasks</span></h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm border-start border-danger border-4">
+                    <div class="card-body">
+                        <h6 class="text-muted">Tareas Vencidas</h6>
+                        <h3 class="text-danger">@summary.OverdueTasks</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm border-start border-info border-4">
+                    <div class="card-body">
+                        <h6 class="text-muted">Documentos Cargados</h6>
+                        <h3>@summary.TotalDocuments</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Documentos por Categoría -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Tipos de Documentos más Cargados</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (!summary.DocumentsByType.Any())
+                        {
+                            <p class="text-muted">Sin datos de documentos.</p>
+                        }
+                        else
+                        {
+                            <ul class="list-group list-group-flush">
+                                @foreach (var dt in summary.DocumentsByType)
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        @dt.Category
+                                        <span class="badge bg-primary rounded-pill">@dt.Count</span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usuarios con Mayor Actividad -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Usuarios con Mayor Actividad de Carga</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (!summary.TopUploaders.Any())
+                        {
+                            <p class="text-muted">Sin actividad registrada.</p>
+                        }
+                        else
+                        {
+                            <ul class="list-group list-group-flush">
+                                @foreach (var up in summary.TopUploaders)
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        @up.DisplayName
+                                        <span class="badge bg-success rounded-pill">@up.UploadCount docs</span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private ReportSummaryDto? summary;
+    private List<Project> projects = new();
+    private int? selectedProjectId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        projects = await DbContext.Projects.ToListAsync();
+        await LoadReportData();
+    }
+
+    private async Task LoadReportData()
+    {
+        summary = await ReportService.GetReportSummaryAsync(selectedProjectId);
+    }
+}

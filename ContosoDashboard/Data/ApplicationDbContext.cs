@@ -18,6 +18,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ProjectMember> ProjectMembers { get; set; } = null!;
     public DbSet<Announcement> Announcements { get; set; } = null!;
     public DbSet<Document> Documents { get; set; } = null!;
+    public DbSet<ExportLog> ExportLogs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

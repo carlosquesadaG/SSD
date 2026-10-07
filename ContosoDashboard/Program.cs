@@ -46,6 +46,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 // Add HttpContextAccessor for accessing user claims
 builder.Services.AddHttpContextAccessor();
