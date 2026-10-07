@@ -29,6 +29,12 @@ public class Project
 
     public DateTime UpdatedDate { get; set; } = DateTime.UtcNow;
 
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TotalBudget { get; set; } = 10000.00m;
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal SpentBudget { get; set; } = 0.00m;
+
     // Navigation properties
     [ForeignKey("ProjectManagerId")]
     public virtual User ProjectManager { get; set; } = null!;

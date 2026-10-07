@@ -19,6 +19,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Announcement> Announcements { get; set; } = null!;
     public DbSet<Document> Documents { get; set; } = null!;
     public DbSet<ExportLog> ExportLogs { get; set; } = null!;
+    public DbSet<BudgetRequest> BudgetRequests { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
