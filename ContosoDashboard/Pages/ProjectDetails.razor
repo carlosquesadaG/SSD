@@ -5,6 +5,7 @@
 @using System.Security.Claims
 @attribute [Authorize]
 @inject IProjectService ProjectService
+@inject IDocumentService DocumentService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -198,6 +199,41 @@
                     </div>
                 </div>
 
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Documentos del Proyecto</h5>
+                        <a href="/documents" class="btn btn-sm btn-outline-primary">Gestionar</a>
+                    </div>
+                    <div class="card-body">
+                        @if (!projectDocuments.Any())
+                        {
+                            <p class="text-muted small mb-0">No hay documentos asociados a este proyecto.</p>
+                        }
+                        else
+                        {
+                            <div class="list-group list-group-flush">
+                                @foreach (var doc in projectDocuments)
+                                {
+                                    <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>@doc.Title</strong>
+                                            <br /><small class="text-muted">@doc.Category - @doc.UploadDate.ToString("d")</small>
+                                        </div>
+                                        <div>
+                                            <a href="/api/documents/@doc.Id/download" class="btn btn-sm btn-outline-success me-1" target="_blank" title="Descargar">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            <a href="/api/documents/@doc.Id/preview" class="btn btn-sm btn-outline-info" target="_blank" title="Previsualizar">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0">Statistics</h5>
@@ -238,6 +274,7 @@
 
     private Project? project;
     private int currentUserId = 0;
+    private List<Document> projectDocuments = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -258,6 +295,10 @@
         if (project == null)
         {
             NavigationManager.NavigateTo("/projects");
+        }
+        else
+        {
+            projectDocuments = await DocumentService.GetDocumentsByProjectAsync(ProjectId);
         }
     }
 

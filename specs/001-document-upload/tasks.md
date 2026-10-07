@@ -33,8 +33,8 @@
 
 - [x] T009 [US2] Añadir métodos de consulta en `DocumentService` para obtener documentos por usuario ("Mis Documentos") y por proyecto con soporte de filtros, búsqueda por texto y ordenamiento.
 - [x] T010 [US2] Crear la página de visualización de documentos del usuario en `ContosoDashboard/Pages/Documents.razor` con opciones de filtrado, búsqueda y ordenamiento.
-- [ ] T011 [US2] Actualizar la página `ContosoDashboard/Pages/ProjectDetails.razor` para incluir la sección de Documentos del Proyecto.
-- [ ] T012 [US2] Implementar el widget de "Documentos Recientes" en la página de inicio/Dashboard (`ContosoDashboard/Pages/Index.razor`).
+- [x] T011 [US2] Actualizar la página `ContosoDashboard/Pages/ProjectDetails.razor` para incluir la sección de Documentos del Proyecto.
+- [x] T012 [US2] Implementar el widget de "Documentos Recientes" en la página de inicio/Dashboard (`ContosoDashboard/Pages/Index.razor`).
 
 ---
 
@@ -43,11 +43,11 @@
 - [x] T013 [US3] Crear el controlador API `DocumentController` en `ContosoDashboard/Controllers/DocumentController.cs` con endpoints de descarga `/api/documents/{id}/download` y previsualización en navegador para PDF e imágenes.
 - [x] T014 [US3] Implementar la verificación de autorización en el controlador para asegurar que solo usuarios autorizados (propietarios, miembros del proyecto o administradores) puedan acceder al archivo.
 - [x] T015 [US3] Añadir funcionalidades de edición de metadatos, reemplazo de archivos y eliminación de documentos en `DocumentService` y la interfaz de usuario.
-- [ ] T016 [US3] Integrar la asociación de documentos directamente desde la vista de detalles de tareas (`ContosoDashboard/Pages/Tasks.razor` o similar).
+- [x] T016 [US3] Integrar la asociación de documentos directamente desde la vista de detalles de tareas (`ContosoDashboard/Pages/Tasks.razor` o similar).
 
 ---
 
 ## Fase 5: Validación y Cierre
 
-- [ ] T017 Realizar pruebas de extremo a extremo (E2E) para el flujo completo: carga -> previsualización -> descarga segura -> widgets de dashboard.
+- [x] T017 Realizar pruebas de extremo a extremo (E2E) para el flujo completo: carga -> previsualización -> descarga segura -> widgets de dashboard.
 - [x] T018 Verificar compilación limpia y ausencia de errores en .NET 8.

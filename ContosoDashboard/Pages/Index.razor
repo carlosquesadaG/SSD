@@ -5,6 +5,7 @@
 @attribute [Authorize]
 @inject IDashboardService DashboardService
 @inject INotificationService NotificationService
+@inject IDocumentService DocumentService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Dashboard - ContosoDashboard</PageTitle>
@@ -118,12 +119,64 @@
             }
         </div>
     </div>
+
+    <!-- Documentos Recientes Widget -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i> Mis Documentos Recientes</h5>
+                    <a href="/documents" class="btn btn-sm btn-outline-primary">Ver Todos</a>
+                </div>
+                <div class="card-body">
+                    @if (!recentDocuments.Any())
+                    {
+                        <p class="text-muted mb-0">No has subido documentos recientemente.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Título</th>
+                                        <th>Categoría</th>
+                                        <th>Fecha</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var doc in recentDocuments)
+                                    {
+                                        <tr>
+                                            <td><strong>@doc.Title</strong></td>
+                                            <td><span class="badge bg-secondary">@doc.Category</span></td>
+                                            <td>@doc.UploadDate.ToLocalTime().ToString("g")</td>
+                                            <td>
+                                                <a href="/api/documents/@doc.Id/download" class="btn btn-sm btn-outline-success me-1" target="_blank" title="Descargar">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                                <a href="/api/documents/@doc.Id/preview" class="btn btn-sm btn-outline-info" target="_blank" title="Previsualizar">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @code {
     private DashboardSummary? summary;
     private List<Announcement>? announcements;
     private List<Notification>? recentNotifications;
+    private List<Document> recentDocuments = new();
     private string userName = "User";
     private int currentUserId = 0;
 
@@ -146,6 +199,7 @@
             summary = await DashboardService.GetDashboardSummaryAsync(currentUserId);
             announcements = await DashboardService.GetActiveAnnouncementsAsync();
             recentNotifications = await NotificationService.GetUserNotificationsAsync(currentUserId);
+            recentDocuments = await DocumentService.GetRecentDocumentsAsync(currentUserId.ToString(), 5);
         }
     }
 

@@ -5,6 +5,7 @@
 @using System.Security.Claims
 @attribute [Authorize]
 @inject ITaskService TaskService
+@inject IDocumentService DocumentService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>My Tasks - ContosoDashboard</PageTitle>
@@ -133,6 +134,61 @@
             </table>
         </div>
     }
+
+    @if (showTaskModal && selectedTask != null)
+    {
+        <div class="modal show fade d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Detalles de Tarea: @selectedTask.Title</h5>
+                        <button type="button" class="btn-close" @onclick="CloseTaskModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>Descripción:</strong> @(selectedTask.Description ?? "Sin descripción")</p>
+                        <p><strong>Estado:</strong> <span class="badge bg-secondary">@selectedTask.Status</span></p>
+                        <p><strong>Prioridad:</strong> <span class="badge bg-@GetPriorityColor(selectedTask.Priority)">@selectedTask.Priority</span></p>
+                        
+                        <hr />
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0"><i class="fas fa-file-alt me-1"></i> Documentos Relacionados</h6>
+                            <a href="/documents" class="btn btn-sm btn-outline-primary">Subir Documento</a>
+                        </div>
+                        
+                        @if (!taskDocuments.Any())
+                        {
+                            <p class="text-muted small">No hay documentos asociados a esta tarea o proyecto.</p>
+                        }
+                        else
+                        {
+                            <div class="list-group list-group-flush">
+                                @foreach (var doc in taskDocuments)
+                                {
+                                    <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>@doc.Title</strong>
+                                            <br /><small class="text-muted">@doc.Category - @doc.UploadDate.ToString("d")</small>
+                                        </div>
+                                        <div>
+                                            <a href="/api/documents/@doc.Id/download" class="btn btn-sm btn-outline-success me-1" target="_blank" title="Descargar">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            <a href="/api/documents/@doc.Id/preview" class="btn btn-sm btn-outline-info" target="_blank" title="Previsualizar">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseTaskModal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -185,9 +241,32 @@
         // TODO: Implement modal dialog for creating tasks
     }
 
-    private void ViewTaskDetails(int taskId)
+    private TaskItem? selectedTask;
+    private List<Document> taskDocuments = new();
+    private bool showTaskModal = false;
+
+    private async Task ViewTaskDetails(int taskId)
     {
-        // TODO: Navigate to task details or show modal
+        selectedTask = tasks?.FirstOrDefault(t => t.TaskId == taskId);
+        if (selectedTask != null)
+        {
+            if (selectedTask.ProjectId.HasValue)
+            {
+                taskDocuments = await DocumentService.GetDocumentsByProjectAsync(selectedTask.ProjectId.Value);
+            }
+            else
+            {
+                taskDocuments = await DocumentService.GetDocumentsByUserAsync(currentUserId.ToString());
+            }
+            showTaskModal = true;
+        }
+    }
+
+    private void CloseTaskModal()
+    {
+        showTaskModal = false;
+        selectedTask = null;
+        taskDocuments.Clear();
     }
 
     private string GetPriorityColor(TaskPriority priority)
